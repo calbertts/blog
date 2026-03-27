@@ -1,0 +1,44 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<BaseLayout title="About — Carlos Alberto">
+  <Header />
+  <main class="about-main">
+    <div class="about-content">
+      <h1 class="about-title">Hola, soy Carlos.</h1>
+      <div class="about-body">
+        <p>Escribo sobre lo que pienso, lo que aprendo y lo que me importa.</p>
+      </div>
+    </div>
+  </main>
+  <Footer />
+</BaseLayout>
+
+<style>
+  .about-main {
+    padding: 48px 24px 0;
+  }
+  .about-content {
+    max-width: var(--reading-width);
+    margin: 0 auto;
+  }
+  .about-title {
+    font-family: var(--font-body);
+    font-size: 2.25rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin-bottom: 32px;
+  }
+  .about-body {
+    font-family: var(--font-body);
+    font-size: 1.1875rem;
+    line-height: 1.8;
+    color: var(--color-text);
+  }
+  .about-body p {
+    margin-bottom: 1.5em;
+  }
+</style>

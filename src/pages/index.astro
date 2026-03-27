@@ -1,0 +1,70 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import PostCard from '../components/PostCard.astro';
+
+const allPosts = await getCollection('blog', ({ data }) => !data.draft);
+const posts = allPosts.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+const [featured, ...rest] = posts;
+---
+
+<BaseLayout title="Carlos Alberto — Blog">
+  <Header />
+
+  <main class="main-content">
+    <div class="content-grid">
+
+      {posts.length === 0 ? (
+        <div class="empty-state">
+          <p>Pronto habrá artículos aquí.</p>
+        </div>
+      ) : (
+        <>
+          {featured && (
+            <section class="featured-section">
+              <PostCard post={featured} featured={true} />
+            </section>
+          )}
+
+          {rest.length > 0 && (
+            <section class="posts-section">
+              {rest.map((post) => (
+                <PostCard post={post} />
+              ))}
+            </section>
+          )}
+        </>
+      )}
+
+    </div>
+  </main>
+
+  <Footer />
+</BaseLayout>
+
+<style>
+  .main-content {
+    min-height: calc(100vh - 64px);
+    padding: 48px 24px 0;
+  }
+
+  .content-grid {
+    max-width: var(--reading-width);
+    margin: 0 auto;
+  }
+
+  .featured-section {
+    margin-bottom: 16px;
+  }
+
+  .empty-state {
+    padding: 80px 0;
+    text-align: center;
+    font-family: var(--font-ui);
+    color: var(--color-text-lighter);
+    font-size: 1.125rem;
+  }
+</style>

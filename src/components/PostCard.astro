@@ -1,0 +1,176 @@
+---
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  post: CollectionEntry<'blog'>;
+  featured?: boolean;
+}
+
+const { post, featured = false } = Astro.props;
+const { title, description, pubDate, cover, tags } = post.data;
+
+const formattedDate = pubDate.toLocaleDateString('es-ES', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+});
+
+const readingTime = Math.ceil(post.body.split(/\s+/).length / 200);
+---
+
+<article class:list={['post-card', { featured }]}>
+  <a href={`/blog/${post.id}`} class="post-card-link">
+    {cover && (
+      <div class="post-cover">
+        <img src={cover} alt={title} loading="lazy" />
+      </div>
+    )}
+    <div class="post-content">
+      <h2 class="post-title">{title}</h2>
+      <p class="post-description">{description}</p>
+      <div class="post-meta">
+        <time datetime={pubDate.toISOString()} class="post-date">{formattedDate}</time>
+        <span class="post-separator">·</span>
+        <span class="post-reading">{readingTime} min de lectura</span>
+        {tags.length > 0 && (
+          <>
+            <span class="post-separator">·</span>
+            <div class="post-tags">
+              {tags.slice(0, 2).map((tag) => (
+                <span class="tag">{tag}</span>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  </a>
+</article>
+
+<style>
+  .post-card {
+    border-bottom: 1px solid var(--color-border);
+    padding: 32px 0;
+    transition: background 0.15s ease;
+  }
+
+  .post-card:first-child {
+    padding-top: 0;
+  }
+
+  .post-card-link {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+  }
+
+  .featured .post-card-link {
+    flex-direction: column;
+  }
+
+  .post-cover {
+    flex-shrink: 0;
+    width: 160px;
+    height: 107px;
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--color-hover);
+  }
+
+  .featured .post-cover {
+    width: 100%;
+    height: 320px;
+  }
+
+  .post-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+  }
+
+  .post-card-link:hover .post-cover img {
+    transform: scale(1.03);
+  }
+
+  .post-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .post-title {
+    font-family: var(--font-body);
+    font-size: 1.375rem;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: -0.02em;
+    color: var(--color-text);
+    margin-bottom: 8px;
+    transition: color 0.15s ease;
+  }
+
+  .featured .post-title {
+    font-size: 1.75rem;
+  }
+
+  .post-card-link:hover .post-title {
+    color: var(--color-text-light);
+  }
+
+  .post-description {
+    font-family: var(--font-ui);
+    font-size: 0.9375rem;
+    color: var(--color-text-light);
+    line-height: 1.5;
+    margin-bottom: 12px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .post-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .post-date,
+  .post-reading {
+    font-family: var(--font-ui);
+    font-size: 0.8125rem;
+    color: var(--color-text-lighter);
+  }
+
+  .post-separator {
+    color: var(--color-text-lighter);
+    font-size: 0.8125rem;
+  }
+
+  .post-tags {
+    display: flex;
+    gap: 6px;
+  }
+
+  .tag {
+    font-family: var(--font-ui);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-text-light);
+    background: var(--color-tag-bg);
+    padding: 2px 10px;
+    border-radius: 100px;
+  }
+
+  @media (max-width: 640px) {
+    .post-cover {
+      width: 100px;
+      height: 67px;
+    }
+
+    .post-title {
+      font-size: 1.1rem;
+    }
+  }
+</style>

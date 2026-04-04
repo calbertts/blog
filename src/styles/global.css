@@ -1,20 +1,17 @@
-@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,300;1,8..60,400;1,8..60,600&family=Inter:wght@300;400;500;600&display=swap');
-
 :root {
-  --font-body: 'Source Serif 4', Georgia, serif;
+  --font-body: 'Lora', Georgia, serif;
   --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 
   --color-bg: #ffffff;
-  --color-text: #242424;
+  --color-text: #0d0d0d;
   --color-text-light: #6b6b6b;
-  --color-text-lighter: #9b9b9b;
-  --color-accent: #1a8917;
-  --color-border: #e6e6e6;
-  --color-hover: #f2f2f2;
+  --color-text-lighter: #b3b3b1;
+  --color-border: #e8e8e8;
+  --color-hover: #f9f9f9;
   --color-tag-bg: #f2f2f2;
 
-  --reading-width: 680px;
-  --content-width: 1080px;
+  --reading-width: 740px;
+  --content-width: 1192px;
 }
 
 *, *::before, *::after {
@@ -36,18 +33,9 @@ body {
   line-height: 1.6;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
-}
+a { color: inherit; text-decoration: none; }
+img { max-width: 100%; height: auto; display: block; }
 
-img {
-  max-width: 100%;
-  height: auto;
-  display: block;
-}
-
-/* ── Scrollbar sutil ── */
-::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 2px; }

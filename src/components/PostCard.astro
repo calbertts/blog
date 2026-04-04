@@ -3,10 +3,9 @@ import type { CollectionEntry } from 'astro:content';
 
 interface Props {
   post: CollectionEntry<'blog'>;
-  featured?: boolean;
 }
 
-const { post, featured = false } = Astro.props;
+const { post } = Astro.props;
 const { title, description, pubDate, cover, tags } = post.data;
 
 const formattedDate = pubDate.toLocaleDateString('en-US', {
@@ -16,34 +15,56 @@ const formattedDate = pubDate.toLocaleDateString('en-US', {
 const readingTime = Math.ceil(post.body.split(/\s+/).length / 200);
 ---
 
-<article class:list={['post-card', { featured }]}>
+<article class="post-card">
   <a href={`/blog/${post.id}`} class="card-link">
     <div class="card-text">
+      <p class="card-byline">
+        {tags.length > 0 ? tags[0] : 'Personal'}
+      </p>
       <h2 class="card-title">{title}</h2>
       <p class="card-desc">{description}</p>
       <div class="card-meta">
-        <span class="meta-item">{readingTime} min read</span>
-        <span class="meta-dot">·</span>
         <time datetime={pubDate.toISOString()}>{formattedDate}</time>
-        {tags.length > 0 && (
-          <>
-            <span class="meta-dot">·</span>
-            {tags.slice(0,2).map(t => <span class="tag">{t}</span>)}
-          </>
-        )}
+        <span class="meta-dot">·</span>
+        <span>{readingTime} min read</span>
+        <span class="meta-dot">·</span>
+        <span class="card-likes" data-slug={post.id}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="vertical-align: middle; margin-right: 3px;">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+          </svg>
+          <span class="likes-num">–</span>
+        </span>
       </div>
     </div>
-    {cover && (
+    {cover ? (
       <div class="card-cover">
         <img src={cover} alt={title} loading="lazy" />
       </div>
+    ) : (
+      <div class="card-cover card-cover--placeholder" aria-hidden="true"></div>
     )}
   </a>
 </article>
 
+<script>
+  const API = 'https://api.blog.calbertts.com';
+
+  document.querySelectorAll('.card-likes').forEach(async (el) => {
+    const slug = (el as HTMLElement).dataset.slug!;
+    const numEl = el.querySelector('.likes-num') as HTMLSpanElement;
+    try {
+      const res = await fetch(`${API}/likes/${slug}`);
+      const data = await res.json();
+      numEl.textContent = String(data.count);
+    } catch {
+      numEl.textContent = '0';
+    }
+  });
+</script>
+
 <style>
   .post-card {
-    padding: 28px 0;
+    padding: 36px 0;
     border-bottom: 1px solid var(--color-border);
   }
 
@@ -51,43 +72,48 @@ const readingTime = Math.ceil(post.body.split(/\s+/).length / 200);
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 20px;
+    gap: 24px;
   }
 
-  .card-text { flex: 1; min-width: 0; }
+  .card-text {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .card-byline {
+    font-family: var(--font-ui);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--color-text-light);
+    margin-bottom: 8px;
+    text-transform: capitalize;
+  }
 
   .card-title {
     font-family: var(--font-ui);
     font-size: 1.25rem;
-    font-weight: 700;
-    line-height: 1.3;
-    letter-spacing: -0.02em;
-    color: var(--color-text);
-    margin-bottom: 6px;
+    font-weight: 900;
+    line-height: 1.25;
+    letter-spacing: -0.025em;
+    color: #000;
+    margin-bottom: 8px;
     transition: color 0.15s;
   }
 
-  .featured .card-title {
-    font-size: 1.75rem;
+  .card-link:hover .card-title {
+    color: #333;
   }
-
-  .card-link:hover .card-title { color: #333; }
 
   .card-desc {
     font-family: var(--font-ui);
     font-size: 0.9375rem;
     color: var(--color-text-light);
-    line-height: 1.55;
-    margin-bottom: 10px;
+    line-height: 1.5;
+    margin-bottom: 14px;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-  }
-
-  .featured .card-desc {
-    font-size: 1rem;
-    -webkit-line-clamp: 3;
   }
 
   .card-meta {
@@ -97,51 +123,49 @@ const readingTime = Math.ceil(post.body.split(/\s+/).length / 200);
     flex-wrap: wrap;
   }
 
-  .meta-item, time {
+  .card-meta time,
+  .card-meta span {
     font-family: var(--font-ui);
     font-size: 0.8125rem;
     color: var(--color-text-lighter);
   }
 
   .meta-dot {
-    color: var(--color-text-lighter);
-    font-size: 0.8125rem;
+    color: var(--color-border) !important;
   }
 
-  .tag {
-    font-family: var(--font-ui);
-    font-size: 0.75rem;
-    color: var(--color-text-light);
-    background: var(--color-tag-bg);
-    padding: 2px 8px;
-    border-radius: 100px;
+  .card-likes {
+    display: inline-flex;
+    align-items: center;
   }
 
+  /* Cover — siempre a la derecha, tamaño fijo */
   .card-cover {
     flex-shrink: 0;
-    width: 140px;
-    height: 93px;
-    border-radius: 3px;
+    width: 112px;
+    height: 112px;
+    border-radius: 2px;
     overflow: hidden;
     background: var(--color-hover);
   }
 
-  .featured .card-cover {
-    width: 180px;
-    height: 120px;
+  .card-cover--placeholder {
+    background: linear-gradient(135deg, #f0f0f0 0%, #e8e8e8 100%);
   }
 
   .card-cover img {
-    width: 100%; height: 100%;
+    width: 100%;
+    height: 100%;
     object-fit: cover;
     transition: transform 0.3s;
   }
 
-  .card-link:hover .card-cover img { transform: scale(1.04); }
+  .card-link:hover .card-cover img {
+    transform: scale(1.04);
+  }
 
   @media (max-width: 600px) {
-    .card-cover { width: 88px; height: 58px; }
+    .card-cover { width: 80px; height: 80px; }
     .card-title { font-size: 1.0625rem; }
-    .featured .card-title { font-size: 1.25rem; }
   }
 </style>

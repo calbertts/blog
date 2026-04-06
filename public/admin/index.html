@@ -75,6 +75,7 @@
     .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-lighter); gap: 12px; text-align: center; }
     .hidden { display: none !important; }
     .btn-back { display: none; }
+    .meta-toggle { display: none; }
 
     /* ── Cover image preview ── */
     .cover-preview { margin-top: 8px; border-radius: 6px; overflow: hidden; max-height: 120px; }
@@ -84,7 +85,7 @@
     .EasyMDEContainer { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
     .EasyMDEContainer .CodeMirror { border: none; font-family: 'Lora', Georgia, serif; font-size: 1.0625rem; line-height: 1.85; color: var(--text); min-height: 420px; padding: 16px 20px; }
     .EasyMDEContainer .CodeMirror-focused { border: none; }
-    .editor-toolbar { background: var(--bg); border-bottom: 1px solid var(--border); border-top: none; padding: 6px 8px; }
+    .editor-toolbar { background: var(--bg); border-bottom: 1px solid var(--border); border-top: none; padding: 6px 8px; display: flex; flex-wrap: wrap; gap: 2px; }
     .editor-toolbar button { color: var(--text-light) !important; border: none !important; border-radius: 4px !important; }
     .editor-toolbar button:hover { background: var(--border) !important; color: var(--text) !important; }
     .editor-toolbar button.active { background: var(--accent) !important; color: #fff !important; }
@@ -98,7 +99,7 @@
     .EasyMDEContainer .editor-preview pre { background: #1c1c1e; color: #e8e8e8; padding: 16px; border-radius: 6px; overflow-x: auto; }
     .EasyMDEContainer .editor-preview pre code { background: none; padding: 0; color: inherit; }
     .EasyMDEContainer .editor-statusbar { border-top: 1px solid var(--border); padding: 8px 12px; font-family: var(--font); font-size: 0.75rem; color: var(--text-lighter); }
-    .editor-toolbar .fa { font-style: normal; font-weight: 500; font-family: var(--font); font-size: 0.75rem; }
+    .editor-toolbar button { width: 30px; height: 30px; text-align: center; }
     .EasyMDEContainer .cm-header-1 { font-size: 1.5em; font-weight: 700; }
     .EasyMDEContainer .cm-header-2 { font-size: 1.3em; font-weight: 700; }
     .EasyMDEContainer .cm-header-3 { font-size: 1.15em; font-weight: 600; }
@@ -153,6 +154,16 @@
       .mobile-editing .editor-wrap { display: block; }
       .btn-back { display: inline-flex; align-items: center; gap: 6px; background: none; border: none; font-family: var(--font); font-size: 0.875rem; color: var(--text-light); cursor: pointer; padding: 0 0 12px 0; text-decoration: underline; text-underline-offset: 2px; }
       .img-modal { width: 95%; padding: 16px; }
+      /* Collapsible metadata on mobile */
+      .editor-meta { display: none; }
+      .editor-meta.meta-open { display: grid; grid-template-columns: 1fr; }
+      .meta-toggle { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 12px; cursor: pointer; font-family: var(--font); font-size: 0.8125rem; font-weight: 500; color: var(--text-light); }
+      .meta-toggle .meta-arrow { transition: transform 0.2s; }
+      .meta-toggle.open .meta-arrow { transform: rotate(180deg); }
+      /* Toolbar wrapping on mobile */
+      .editor-toolbar { flex-wrap: wrap; gap: 2px; }
+      .editor-toolbar button { width: 28px; height: 28px; }
+    }
     }
   </style>
 </head>
@@ -241,7 +252,11 @@
             <button class="btn btn-primary btn-sm" id="btn-publish">Publicar →</button>
           </div>
         </div>
-        <div class="editor-meta">
+        <div class="meta-toggle" id="meta-toggle" onclick="this.classList.toggle('open'); document.getElementById('editor-meta').classList.toggle('meta-open')">
+          <span>⚙️ Metadatos (slug, tags, portada...)</span>
+          <span class="meta-arrow">▼</span>
+        </div>
+        <div class="editor-meta" id="editor-meta">
           <div class="meta-field">
             <label>Slug (URL)</label>
             <input type="text" id="ed-slug" placeholder="mi-articulo" />

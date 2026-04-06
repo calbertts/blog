@@ -138,6 +138,34 @@
     .stats-bar { height: 6px; border-radius: 3px; background: var(--accent); min-width: 2px; }
     .stats-empty { color: var(--text-lighter); font-size: 0.875rem; padding: 16px 0; }
 
+    /* ── Raw textarea fallback (shows when EasyMDE doesn't load) ── */
+    #ed-body {
+      display: block; width: 100%; min-height: 50vh; border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px; font-family: 'Lora', Georgia, serif;
+      font-size: 1.0625rem; line-height: 1.85; color: var(--text); background: var(--surface);
+      resize: vertical; outline: none; transition: border-color 0.2s;
+    }
+    #ed-body:focus { border-color: var(--accent); }
+    #ed-body::placeholder { color: var(--text-lighter); }
+    /* When EasyMDE loads, it hides the textarea — these styles are fallback only */
+    .EasyMDEContainer + .editor-hint { margin-top: 0; }
+
+    /* ── Floating markdown toolbar (for textarea fallback on mobile) ── */
+    .md-toolbar {
+      display: none; position: sticky; top: 0; z-index: 10; background: var(--surface);
+      border: 1px solid var(--border); border-radius: var(--radius); padding: 6px 8px;
+      margin-bottom: 8px; gap: 2px; flex-wrap: wrap;
+    }
+    .md-toolbar button {
+      background: none; border: 1px solid transparent; border-radius: 4px; width: 32px; height: 32px;
+      font-size: 0.9rem; cursor: pointer; color: var(--text-light); display: inline-flex;
+      align-items: center; justify-content: center; font-family: var(--font); font-weight: 600;
+    }
+    .md-toolbar button:hover { background: var(--bg); color: var(--text); }
+    .md-toolbar .sep { width: 1px; height: 20px; background: var(--border); margin: 6px 4px; }
+    /* Show fallback toolbar only when EasyMDE didn't load */
+    .md-toolbar.visible { display: flex; }
+
     @media (max-width: 700px) {
       .admin-body { flex-direction: column; padding: 16px; gap: 16px; }
       .sidebar { width: 100%; }
@@ -163,7 +191,7 @@
       /* Toolbar wrapping on mobile */
       .editor-toolbar { flex-wrap: wrap; gap: 2px; }
       .editor-toolbar button { width: 28px; height: 28px; }
-    }
+      #ed-body { min-height: 40vh; font-size: 1rem; padding: 16px; }
     }
   </style>
 </head>
@@ -282,7 +310,26 @@
             <input type="date" id="ed-date" />
           </div>
         </div>
-        <textarea id="ed-body"></textarea>
+        <div class="md-toolbar" id="md-toolbar">
+          <button type="button" data-md="bold" title="Negrita"><b>B</b></button>
+          <button type="button" data-md="italic" title="Cursiva"><i>I</i></button>
+          <button type="button" data-md="strike" title="Tachado"><s>S</s></button>
+          <span class="sep"></span>
+          <button type="button" data-md="h2" title="Encabezado">H</button>
+          <button type="button" data-md="h3" title="Subencabezado">h</button>
+          <span class="sep"></span>
+          <button type="button" data-md="quote" title="Cita">❝</button>
+          <button type="button" data-md="ul" title="Lista">•</button>
+          <button type="button" data-md="ol" title="Lista numerada">1.</button>
+          <span class="sep"></span>
+          <button type="button" data-md="link" title="Enlace">🔗</button>
+          <button type="button" data-md="image" title="Imagen">📷</button>
+          <button type="button" data-md="code" title="Código">&lt;/&gt;</button>
+          <button type="button" data-md="hr" title="Línea">—</button>
+        </div>
+        <textarea id="ed-body" placeholder="Escribe tu artículo aquí...
+
+Usa Markdown: **negrita**, *cursiva*, ## títulos, ![imagen](url)"></textarea>
         <div class="editor-hint">
           <span id="ed-wordcount">0 palabras</span>
           <span>·</span>
@@ -423,65 +470,127 @@
     } catch(e) { console.error('loadPosts:', e); }
   }
 
+  // ── Editor value helpers (work with or without EasyMDE) ──
+  function getEditorValue() {
+    return easyMDE ? easyMDE.value() : document.getElementById('ed-body').value;
+  }
+  function setEditorValue(val) {
+    if (easyMDE) { easyMDE.value(val); }
+    else { document.getElementById('ed-body').value = val; autoGrowTextarea(); }
+  }
+  function autoGrowTextarea() {
+    const ta = document.getElementById('ed-body');
+    if (!ta || ta.style.display === 'none') return;
+    ta.style.height = 'auto';
+    ta.style.height = Math.max(ta.scrollHeight, window.innerHeight * 0.4) + 'px';
+  }
+
   function initEasyMDE() {
     if (easyMDE) return;
-    easyMDE = new EasyMDE({
-      element: document.getElementById('ed-body'),
-      spellChecker: false,
-      autosave: false,
-      placeholder: 'Escribe tu artículo aquí...\n\nUsa Markdown: **negrita**, *cursiva*, ## títulos, ![imagen](url)',
-      status: ['words', 'cursor'],
-      minHeight: '400px',
-      toolbar: [
-        'bold', 'italic', 'strikethrough', '|',
-        'heading-1', 'heading-2', 'heading-3', '|',
-        'quote', 'unordered-list', 'ordered-list', '|',
-        'link',
-        { name: 'image', action: () => openImageModal('editor'), className: 'fa fa-image', title: 'Insertar imagen' },
-        'table', '|',
-        'code', 'horizontal-rule', '|',
-        'preview', 'side-by-side', 'fullscreen', '|',
-        'undo', 'redo', '|',
-        'guide',
-      ],
-      previewRender: (text) => {
-        return EasyMDE.prototype.markdown(text);
-      },
-      uploadImage: false,
-    });
-    easyMDE.codemirror.on('change', updateWordcount);
-    // Drag & drop image upload on the editor
-    easyMDE.codemirror.on('drop', async (cm, e) => {
-      const files = e.dataTransfer?.files;
-      if (!files || files.length === 0) return;
-      const file = files[0];
-      if (!file.type.startsWith('image/')) return;
-      e.preventDefault();
-      const url = await uploadFile(file);
-      if (url) {
-        const cursor = cm.getCursor();
-        cm.replaceRange(`\n![${file.name}](${url})\n`, cursor);
-      }
-    });
-    // Paste image upload
-    easyMDE.codemirror.on('paste', async (cm, e) => {
-      const items = e.clipboardData?.items;
-      if (!items) return;
-      for (const item of items) {
-        if (item.type.startsWith('image/')) {
-          e.preventDefault();
-          const file = item.getAsFile();
-          if (!file) continue;
-          const url = await uploadFile(file);
-          if (url) {
-            const cursor = cm.getCursor();
-            cm.replaceRange(`![imagen](${url})`, cursor);
-          }
-          return;
+    if (typeof EasyMDE === 'undefined') {
+      console.warn('EasyMDE not loaded, using textarea fallback');
+      showFallbackToolbar();
+      return;
+    }
+    try {
+      easyMDE = new EasyMDE({
+        element: document.getElementById('ed-body'),
+        spellChecker: false,
+        autosave: false,
+        placeholder: 'Escribe tu artículo aquí...\n\nUsa Markdown: **negrita**, *cursiva*, ## títulos, ![imagen](url)',
+        status: ['words', 'cursor'],
+        minHeight: '400px',
+        toolbar: [
+          'bold', 'italic', 'strikethrough', '|',
+          'heading-1', 'heading-2', 'heading-3', '|',
+          'quote', 'unordered-list', 'ordered-list', '|',
+          'link',
+          { name: 'image', action: () => openImageModal('editor'), className: 'fa fa-image', title: 'Insertar imagen' },
+          'table', '|',
+          'code', 'horizontal-rule', '|',
+          'preview', 'side-by-side', 'fullscreen', '|',
+          'undo', 'redo', '|',
+          'guide',
+        ],
+        previewRender: (text) => {
+          return EasyMDE.prototype.markdown(text);
+        },
+        uploadImage: false,
+      });
+      easyMDE.codemirror.on('change', updateWordcount);
+      easyMDE.codemirror.on('drop', async (cm, e) => {
+        const files = e.dataTransfer?.files;
+        if (!files || files.length === 0) return;
+        const file = files[0];
+        if (!file.type.startsWith('image/')) return;
+        e.preventDefault();
+        const url = await uploadFile(file);
+        if (url) {
+          const cursor = cm.getCursor();
+          cm.replaceRange(`\n![${file.name}](${url})\n`, cursor);
         }
-      }
-    });
+      });
+      easyMDE.codemirror.on('paste', async (cm, e) => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+        for (const item of items) {
+          if (item.type.startsWith('image/')) {
+            e.preventDefault();
+            const file = item.getAsFile();
+            if (!file) continue;
+            const url = await uploadFile(file);
+            if (url) {
+              const cursor = cm.getCursor();
+              cm.replaceRange(`![imagen](${url})`, cursor);
+            }
+            return;
+          }
+        }
+      });
+      // Hide fallback toolbar when EasyMDE loads
+      document.getElementById('md-toolbar').classList.remove('visible');
+    } catch(e) {
+      console.error('EasyMDE init failed:', e);
+      easyMDE = null;
+      showFallbackToolbar();
+    }
   }
+
+  function showFallbackToolbar() {
+    document.getElementById('md-toolbar').classList.add('visible');
+    const ta = document.getElementById('ed-body');
+    ta.addEventListener('input', () => { autoGrowTextarea(); updateWordcount(); });
+    autoGrowTextarea();
+  }
+
+  // Fallback toolbar: insert markdown around selection
+  document.getElementById('md-toolbar').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-md]');
+    if (!btn) return;
+    const ta = document.getElementById('ed-body');
+    const start = ta.selectionStart, end = ta.selectionEnd;
+    const sel = ta.value.substring(start, end);
+    const action = btn.dataset.md;
+    let insert = '';
+    const wrap = (pre, suf) => { insert = pre + (sel || 'texto') + (suf || pre); };
+    switch(action) {
+      case 'bold': wrap('**'); break;
+      case 'italic': wrap('*'); break;
+      case 'strike': wrap('~~'); break;
+      case 'h2': insert = '\n## ' + (sel || 'Encabezado') + '\n'; break;
+      case 'h3': insert = '\n### ' + (sel || 'Subencabezado') + '\n'; break;
+      case 'quote': insert = '\n> ' + (sel || 'Cita') + '\n'; break;
+      case 'ul': insert = '\n- ' + (sel || 'Elemento') + '\n'; break;
+      case 'ol': insert = '\n1. ' + (sel || 'Elemento') + '\n'; break;
+      case 'link': insert = '[' + (sel || 'texto') + '](url)'; break;
+      case 'image': openImageModal('editor'); return;
+      case 'code': wrap('`'); break;
+      case 'hr': insert = '\n---\n'; break;
+    }
+    ta.focus();
+    ta.setRangeText(insert, start, end, 'end');
+    ta.dispatchEvent(new Event('input'));
+  });
 
   async function loadPost(slug) {
     currentSlug = slug;
@@ -506,9 +615,12 @@
 
     document.getElementById('editor-empty').classList.add('hidden');
     document.getElementById('editor-content').classList.remove('hidden');
-    initEasyMDE();
-    easyMDE.value(fmMatch ? fmMatch[2].trim() : content);
-    updateWordcount();
+    // Delay EasyMDE init to ensure DOM is rendered (fixes mobile)
+    requestAnimationFrame(() => {
+      initEasyMDE();
+      setEditorValue(fmMatch ? fmMatch[2].trim() : content);
+      updateWordcount();
+    });
     if (window.innerWidth <= 700) {
       document.getElementById('screen-admin').classList.add('mobile-editing');
     }
@@ -520,7 +632,7 @@
     const tags = document.getElementById('ed-tags').value.split(',').map(t=>t.trim()).filter(Boolean);
     const cover = document.getElementById('ed-cover').value;
     const date = document.getElementById('ed-date').value || new Date().toISOString().slice(0,10);
-    const bodyText = easyMDE ? easyMDE.value() : '';
+    const bodyText = getEditorValue();
     const tagsStr = tags.length ? '[' + tags.map(t=>'"'+t+'"').join(', ') + ']' : '[]';
     return '---\ntitle: "' + title + '"\ndescription: "' + desc + '"\npubDate: ' + date + (cover ? '\ncover: "' + cover + '"' : '') + '\ntags: ' + tagsStr + '\ndraft: ' + (draft ? 'true' : 'false') + '\n---\n\n' + bodyText;
   }
@@ -563,13 +675,15 @@
     document.getElementById('cover-preview').innerHTML = '';
     document.getElementById('editor-empty').classList.add('hidden');
     document.getElementById('editor-content').classList.remove('hidden');
-    initEasyMDE();
-    easyMDE.value('');
-    if (window.innerWidth <= 700) {
-      document.getElementById('screen-admin').classList.add('mobile-editing');
-    }
-    updateWordcount();
-    document.getElementById('ed-title').focus();
+    requestAnimationFrame(() => {
+      initEasyMDE();
+      setEditorValue('');
+      if (window.innerWidth <= 700) {
+        document.getElementById('screen-admin').classList.add('mobile-editing');
+      }
+      updateWordcount();
+      document.getElementById('ed-title').focus();
+    });
   });
 
   document.getElementById('ed-title').addEventListener('input', e => {
@@ -581,7 +695,7 @@
   });
 
   function updateWordcount() {
-    const text = easyMDE ? easyMDE.value() : '';
+    const text = getEditorValue();
     const words = text.split(/\s+/).filter(Boolean).length;
     document.getElementById('ed-wordcount').textContent = words + ' palabras';
   }
@@ -666,6 +780,13 @@
       const cursor = cm.getCursor();
       cm.replaceRange(`\n![](${url})\n`, cursor);
       cm.focus();
+    } else {
+      const ta = document.getElementById('ed-body');
+      const pos = ta.selectionStart;
+      const insert = `\n![](${url})\n`;
+      ta.setRangeText(insert, pos, pos, 'end');
+      ta.dispatchEvent(new Event('input'));
+      ta.focus();
     }
   }
 

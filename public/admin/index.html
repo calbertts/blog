@@ -164,13 +164,10 @@
     <p class="auth-subtitle">Registra tu autenticador. Este paso solo puede hacerse una vez.</p>
     <div class="form-group">
       <label class="form-label" for="setup-label">Nombre de la llave</label>
-      <input class="form-input" id="setup-label" type="text" value="YubiKey principal" autocomplete="off" />
+      <input class="form-input" id="setup-label" type="text" value="Mi llave" autocomplete="off" />
     </div>
-    <button class="btn btn-primary" id="btn-setup-yubikey">
-      🔑 Registrar YubiKey
-    </button>
-    <button class="btn" style="background:#f5f5f5;color:#333;border:1px solid #ddd;margin-top:8px;" id="btn-setup-passkey">
-      📱 Usar Face ID / Touch ID
+    <button class="btn btn-primary" id="btn-setup">
+      🔐 Registrar autenticador
     </button>
     <p class="status-msg" id="setup-msg"></p>
   </div>
@@ -181,11 +178,8 @@
     <span class="auth-logo">Carlos Alberto — Blog</span>
     <h1 class="auth-title">Acceder</h1>
     <p class="auth-subtitle">Autentícate con tu llave registrada.</p>
-    <button class="btn btn-primary" id="btn-login-yubikey">
-      🔑 Autenticar con YubiKey
-    </button>
-    <button class="btn" style="background:#f5f5f5;color:#333;border:1px solid #ddd;margin-top:8px;" id="btn-login-passkey">
-      📱 Autenticar con Face ID / Touch ID
+    <button class="btn btn-primary" id="btn-login">
+      🔐 Autenticar
     </button>
     <p class="status-msg" id="login-msg"></p>
   </div>
@@ -220,8 +214,7 @@
     <div id="keys-list" style="margin-bottom:20px"></div>
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <input class="form-input" id="new-key-label" type="text" placeholder="Nombre de la nueva llave" style="max-width:220px" />
-      <button class="btn btn-primary btn-sm" id="btn-add-key-yubikey">+ Añadir YubiKey</button>
-      <button class="btn btn-sm" style="background:#f5f5f5;color:#333;border:1px solid #ddd;" id="btn-add-key-passkey">+ Añadir Face ID</button>
+      <button class="btn btn-primary btn-sm" id="btn-add-key">+ Añadir llave</button>
     </div>
     <p class="status-msg" id="keys-msg" style="margin-top:12px"></p>
   </div>
@@ -336,21 +329,18 @@
   }
 
   // ── Auth: Setup ──────────────────────────────────────────────────────────
-  async function doSetup(authenticatorType) {
-    const label = document.getElementById('setup-label').value.trim() || 'YubiKey';
-    document.getElementById('btn-setup-yubikey').disabled = true;
-    document.getElementById('btn-setup-passkey').disabled = true;
+  async function doSetup() {
+    const label = document.getElementById('setup-label').value.trim() || 'Mi llave';
+    document.getElementById('btn-setup').disabled = true;
     setMsg('setup-msg', 'Solicitando opciones...', 'info');
     try {
       const optsRes = await fetch(API + '/auth/register/options', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', body: JSON.stringify({ username: 'carlos', authenticatorType }),
+        credentials: 'include', body: JSON.stringify({ username: 'carlos' }),
       });
       const opts = await optsRes.json();
       if (opts.error) throw new Error(opts.error);
-      setMsg('setup-msg', authenticatorType === 'platform'
-        ? '📱 Sigue las instrucciones del navegador...'
-        : '🔑 Toca tu YubiKey e introduce el PIN si se te pide...', 'info');
+      setMsg('setup-msg', '🔐 Sigue las instrucciones del navegador...', 'info');
       const response = await SimpleWebAuthnBrowser.startRegistration({ optionsJSON: opts });
       const verifyRes = await fetch(API + '/auth/register/verify', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -362,18 +352,15 @@
       setTimeout(() => { show('screen-admin'); loadPosts(); }, 800);
     } catch(e) {
       setMsg('setup-msg', e.message, 'error');
-      document.getElementById('btn-setup-yubikey').disabled = false;
-      document.getElementById('btn-setup-passkey').disabled = false;
+      document.getElementById('btn-setup').disabled = false;
     }
   }
 
-  document.getElementById('btn-setup-yubikey').addEventListener('click', () => doSetup('cross-platform'));
-  document.getElementById('btn-setup-passkey').addEventListener('click', () => doSetup('platform'));
+  document.getElementById('btn-setup').addEventListener('click', doSetup);
 
   // ── Auth: Login ──────────────────────────────────────────────────────────
   async function doLogin() {
-    document.getElementById('btn-login-yubikey').disabled = true;
-    document.getElementById('btn-login-passkey').disabled = true;
+    document.getElementById('btn-login').disabled = true;
     setMsg('login-msg', 'Esperando autenticador...', 'info');
     try {
       const optsRes = await fetch(API + '/auth/login/options', { method: 'POST', credentials: 'include' });
@@ -389,13 +376,11 @@
       show('screen-admin'); loadPosts();
     } catch(e) {
       setMsg('login-msg', '❌ ' + e.message, 'error');
-      document.getElementById('btn-login-yubikey').disabled = false;
-      document.getElementById('btn-login-passkey').disabled = false;
+      document.getElementById('btn-login').disabled = false;
     }
   }
 
-  document.getElementById('btn-login-yubikey').addEventListener('click', doLogin);
-  document.getElementById('btn-login-passkey').addEventListener('click', doLogin);
+  document.getElementById('btn-login').addEventListener('click', doLogin);
 
   document.getElementById('btn-logout').addEventListener('click', async () => {
     await fetch(API + '/auth/logout', { method: 'POST', credentials: 'include' });
@@ -758,14 +743,14 @@
 
   const prefetchedOpts = {};
 
-  async function prefetchAddKeyOpts(authenticatorType) {
+  async function prefetchAddKeyOpts() {
     try {
       const r = await fetch(API + '/auth/credentials/add/options', {
         method: 'POST', headers: {'Content-Type':'application/json'},
-        credentials: 'include', body: JSON.stringify({ authenticatorType }),
+        credentials: 'include', body: JSON.stringify({}),
       });
       const opts = await r.json();
-      if (!opts.error) prefetchedOpts[authenticatorType] = opts;
+      if (!opts.error) prefetchedOpts.addkey = opts;
     } catch {}
   }
 
@@ -775,8 +760,7 @@
     if (panel.classList.contains('hidden')) {
       panel.classList.remove('hidden');
       loadKeys();
-      prefetchAddKeyOpts('cross-platform');
-      prefetchAddKeyOpts('platform');
+      prefetchAddKeyOpts();
     } else { panel.classList.add('hidden'); }
   });
   document.getElementById('btn-keys-close').addEventListener('click', () => {
@@ -805,25 +789,17 @@
     return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
   }
 
-  async function doAddKey(authenticatorType) {
-    const label = document.getElementById('new-key-label').value.trim() || (authenticatorType === 'platform' ? 'Face ID' : 'YubiKey');
-    document.getElementById('btn-add-key-yubikey').disabled = true;
-    document.getElementById('btn-add-key-passkey').disabled = true;
-    const { isIOS, isChromeiOS } = browserInfo();
-    if (authenticatorType === 'cross-platform' && isIOS && isChromeiOS) {
-      setMsg('keys-msg', '⚠️ Chrome en iPhone no soporta YubiKey. Abre en Safari.', 'error');
-      document.getElementById('btn-add-key-yubikey').disabled = false;
-      document.getElementById('btn-add-key-passkey').disabled = false;
-      return;
-    }
+  async function doAddKey() {
+    const label = document.getElementById('new-key-label').value.trim() || 'Nueva llave';
+    document.getElementById('btn-add-key').disabled = true;
     try {
-      let opts = prefetchedOpts[authenticatorType];
-      if (opts) { delete prefetchedOpts[authenticatorType]; }
+      let opts = prefetchedOpts.addkey;
+      if (opts) { delete prefetchedOpts.addkey; }
       else {
         setMsg('keys-msg', '⏳ Cargando...', 'info');
         const r = await fetch(API + '/auth/credentials/add/options', {
           method: 'POST', headers: {'Content-Type':'application/json'},
-          credentials: 'include', body: JSON.stringify({ authenticatorType }),
+          credentials: 'include', body: JSON.stringify({}),
         });
         opts = await r.json();
         if (opts.error) throw new Error('Servidor: ' + opts.error);
@@ -834,20 +810,14 @@
         user: { id: b64urlToBuffer(opts.user.id), name: opts.user.name, displayName: opts.user.name },
         pubKeyCredParams: [{ alg: -7, type: 'public-key' }, { alg: -257, type: 'public-key' }],
         timeout: 120000, attestation: 'none',
+        authenticatorSelection: { residentKey: 'preferred', userVerification: 'preferred' },
       };
       if (opts.excludeCredentials?.length) {
         cleanOpts.excludeCredentials = opts.excludeCredentials.map(c => ({
           id: b64urlToBuffer(c.id), type: c.type || 'public-key',
         }));
       }
-      if (authenticatorType === 'platform') {
-        cleanOpts.authenticatorSelection = { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'required' };
-      } else {
-        cleanOpts.authenticatorSelection = { residentKey: 'preferred', userVerification: 'preferred' };
-      }
-      setMsg('keys-msg', authenticatorType === 'platform'
-        ? '📱 Sigue las instrucciones del navegador...'
-        : '🔑 Acerca la YubiKey a la parte superior del iPhone y mantenla fija...', 'info');
+      setMsg('keys-msg', '🔐 Sigue las instrucciones del navegador...', 'info');
       const cred = await navigator.credentials.create({ publicKey: cleanOpts });
       const response = {
         id: cred.id, rawId: bufferToB64url(cred.rawId),
@@ -861,26 +831,23 @@
       setMsg('keys-msg', '✅ Verificando...', 'info');
       const verifyRes = await fetch(API + '/auth/credentials/add/verify', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', body: JSON.stringify({ response, label, authenticatorType }),
+        credentials: 'include', body: JSON.stringify({ response, label }),
       });
       const result = await verifyRes.json();
       if (!result.verified) throw new Error(result.error || 'Error al verificar');
       setMsg('keys-msg', '✅ Llave añadida correctamente', 'success');
       document.getElementById('new-key-label').value = '';
-      prefetchAddKeyOpts('cross-platform');
-      prefetchAddKeyOpts('platform');
+      prefetchAddKeyOpts();
       loadKeys();
     } catch(e) {
       setMsg('keys-msg', '❌ ' + e.message, 'error');
-      prefetchAddKeyOpts(authenticatorType);
+      prefetchAddKeyOpts();
     } finally {
-      document.getElementById('btn-add-key-yubikey').disabled = false;
-      document.getElementById('btn-add-key-passkey').disabled = false;
+      document.getElementById('btn-add-key').disabled = false;
     }
   }
 
-  document.getElementById('btn-add-key-yubikey').addEventListener('click', () => doAddKey('cross-platform'));
-  document.getElementById('btn-add-key-passkey').addEventListener('click', () => doAddKey('platform'));
+  document.getElementById('btn-add-key').addEventListener('click', doAddKey);
 
   init();
 </script>

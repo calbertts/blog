@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Lora:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde@2/dist/easymde.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/easymde@2/dist/easymde.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@simplewebauthn/browser@13/dist/bundle/index.umd.min.js"></script>
   <style>
@@ -421,17 +422,17 @@
         'heading-1', 'heading-2', 'heading-3', '|',
         'quote', 'unordered-list', 'ordered-list', '|',
         'link',
-        { name: 'image', action: () => openImageModal('editor'), className: 'fa fa-image', title: 'Insertar imagen (📷)', text: '📷' },
+        { name: 'image', action: () => openImageModal('editor'), className: 'fa fa-image', title: 'Insertar imagen' },
         'table', '|',
         'code', 'horizontal-rule', '|',
         'preview', 'side-by-side', 'fullscreen', '|',
-        'undo', 'redo',
+        'undo', 'redo', '|',
+        'guide',
       ],
       previewRender: (text) => {
-        // Simple markdown preview (EasyMDE's built-in)
         return EasyMDE.prototype.markdown(text);
       },
-      uploadImage: false, // We handle uploads ourselves
+      uploadImage: false,
     });
     easyMDE.codemirror.on('change', updateWordcount);
     // Drag & drop image upload on the editor

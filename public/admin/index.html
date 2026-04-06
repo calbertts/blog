@@ -1,0 +1,888 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Blog</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Lora:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde@2/dist/easymde.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/easymde@2/dist/easymde.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@simplewebauthn/browser@13/dist/bundle/index.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #fafafa; --surface: #ffffff; --border: #e8e8e8;
+      --text: #0d0d0d; --text-light: #6b6b6b; --text-lighter: #b3b3b1;
+      --accent: #0f0f0f; --accent-hover: #333;
+      --danger: #dc2626; --success: #16a34a;
+      --radius: 8px; --font: 'Inter', sans-serif;
+    }
+    html, body { height: 100%; background: var(--bg); font-family: var(--font); color: var(--text); }
+
+    .auth-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .auth-card { width: 100%; max-width: 400px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 40px 36px; }
+    .auth-logo { font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 32px; display: block; }
+    .auth-title { font-size: 1.375rem; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 8px; }
+    .auth-subtitle { font-size: 0.875rem; color: var(--text-light); margin-bottom: 28px; line-height: 1.5; }
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; font-size: 0.8125rem; font-weight: 500; margin-bottom: 6px; color: var(--text-light); }
+    .form-input { width: 100%; padding: 10px 14px; font-family: var(--font); font-size: 0.9375rem; border: 1px solid var(--border); border-radius: 6px; outline: none; transition: border-color 0.15s; background: var(--surface); color: var(--text); }
+    .form-input:focus { border-color: var(--accent); }
+    .btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 11px 20px; font-family: var(--font); font-size: 0.9375rem; font-weight: 600; border: none; border-radius: 6px; cursor: pointer; transition: background 0.15s, opacity 0.15s; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    .btn-outline:hover { background: var(--bg); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-sm { width: auto; padding: 6px 14px; font-size: 0.8125rem; }
+    .status-msg { margin-top: 16px; padding: 10px 14px; border-radius: 6px; font-size: 0.875rem; line-height: 1.4; display: none; }
+    .status-msg.error { background: #fef2f2; color: var(--danger); display: block; }
+    .status-msg.success { background: #f0fdf4; color: var(--success); display: block; }
+    .status-msg.info { background: #eff6ff; color: #1d4ed8; display: block; }
+
+    .admin-wrap { display: none; min-height: 100vh; flex-direction: column; }
+    .admin-wrap.visible { display: flex; }
+    .topbar { position: sticky; top: 0; z-index: 100; background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; }
+    .topbar-brand { font-weight: 800; font-size: 0.9375rem; letter-spacing: -0.02em; }
+    .topbar-actions { display: flex; gap: 10px; align-items: center; }
+    .topbar-link { font-size: 0.8125rem; color: var(--text-light); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; border: none; background: none; font-family: var(--font); }
+    .topbar-link:hover { color: var(--text); }
+    .admin-body { display: flex; flex: 1; max-width: 1100px; margin: 0 auto; width: 100%; padding: 32px 24px; gap: 32px; }
+    .sidebar { width: 260px; flex-shrink: 0; }
+    .sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .sidebar-title { font-size: 0.8125rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-lighter); }
+    .post-list { list-style: none; }
+    .post-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 6px; cursor: pointer; transition: background 0.1s; margin-bottom: 2px; }
+    .post-item:hover { background: var(--border); }
+    .post-item.active { background: var(--accent); color: #fff; }
+    .post-item-title { font-size: 0.875rem; font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .post-item-draft { font-size: 0.6875rem; color: var(--text-lighter); margin-left: 6px; flex-shrink: 0; }
+    .post-item.active .post-item-draft { color: rgba(255,255,255,0.6); }
+    .editor-wrap { flex: 1; min-width: 0; }
+    .editor-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 12px; }
+    .editor-title-input { flex: 1; font-family: var(--font); font-size: 1.375rem; font-weight: 800; letter-spacing: -0.03em; border: none; outline: none; background: transparent; color: var(--text); min-width: 0; }
+    .editor-title-input::placeholder { color: var(--text-lighter); }
+    .editor-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .editor-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; padding: 16px; background: var(--bg); border-radius: var(--radius); border: 1px solid var(--border); }
+    .meta-field label { display: block; font-size: 0.75rem; font-weight: 500; color: var(--text-lighter); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .meta-field input, .meta-field textarea { width: 100%; font-family: var(--font); font-size: 0.875rem; border: none; outline: none; background: transparent; color: var(--text); resize: none; }
+    .meta-field textarea { min-height: 52px; line-height: 1.5; }
+    .meta-field-full { grid-column: 1 / -1; }
+    .editor-hint { font-size: 0.8125rem; color: var(--text-lighter); margin-top: 10px; display: flex; align-items: center; gap: 16px; }
+    .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-lighter); gap: 12px; text-align: center; }
+    .hidden { display: none !important; }
+    .btn-back { display: none; }
+
+    /* ── Cover image preview ── */
+    .cover-preview { margin-top: 8px; border-radius: 6px; overflow: hidden; max-height: 120px; }
+    .cover-preview img { width: 100%; max-height: 120px; object-fit: cover; border-radius: 6px; }
+
+    /* ── EasyMDE customization ── */
+    .EasyMDEContainer { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .EasyMDEContainer .CodeMirror { border: none; font-family: 'Lora', Georgia, serif; font-size: 1.0625rem; line-height: 1.85; color: var(--text); min-height: 420px; padding: 16px 20px; }
+    .EasyMDEContainer .CodeMirror-focused { border: none; }
+    .editor-toolbar { background: var(--bg); border-bottom: 1px solid var(--border); border-top: none; padding: 6px 8px; }
+    .editor-toolbar button { color: var(--text-light) !important; border: none !important; border-radius: 4px !important; }
+    .editor-toolbar button:hover { background: var(--border) !important; color: var(--text) !important; }
+    .editor-toolbar button.active { background: var(--accent) !important; color: #fff !important; }
+    .editor-toolbar i.separator { border-color: var(--border) !important; }
+    .editor-toolbar.disabled-for-preview button:not(.no-disable) { opacity: 0.4; }
+    .EasyMDEContainer .editor-preview { font-family: 'Lora', Georgia, serif; font-size: 1.0625rem; line-height: 1.85; padding: 20px; }
+    .EasyMDEContainer .editor-preview h1, .EasyMDEContainer .editor-preview h2, .EasyMDEContainer .editor-preview h3 { font-family: var(--font); font-weight: 700; letter-spacing: -0.02em; margin: 1.5em 0 0.5em; }
+    .EasyMDEContainer .editor-preview blockquote { border-left: 3px solid var(--text); padding-left: 20px; font-style: italic; color: var(--text-light); }
+    .EasyMDEContainer .editor-preview img { max-width: 100%; border-radius: 4px; margin: 1em 0; }
+    .EasyMDEContainer .editor-preview code { background: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-size: 0.875em; }
+    .EasyMDEContainer .editor-preview pre { background: #1c1c1e; color: #e8e8e8; padding: 16px; border-radius: 6px; overflow-x: auto; }
+    .EasyMDEContainer .editor-preview pre code { background: none; padding: 0; color: inherit; }
+    .EasyMDEContainer .editor-statusbar { border-top: 1px solid var(--border); padding: 8px 12px; font-family: var(--font); font-size: 0.75rem; color: var(--text-lighter); }
+    .editor-toolbar .fa { font-style: normal; font-weight: 500; font-family: var(--font); font-size: 0.75rem; }
+    .EasyMDEContainer .cm-header-1 { font-size: 1.5em; font-weight: 700; }
+    .EasyMDEContainer .cm-header-2 { font-size: 1.3em; font-weight: 700; }
+    .EasyMDEContainer .cm-header-3 { font-size: 1.15em; font-weight: 600; }
+    .EasyMDEContainer .cm-quote { color: var(--text-light); font-style: italic; }
+    .EasyMDEContainer .cm-link { color: #1d4ed8; }
+    .EasyMDEContainer .cm-url { color: var(--text-lighter); }
+    .EasyMDEContainer .cm-image-marker { color: var(--text-lighter); }
+
+    /* ── Image gallery modal ── */
+    .img-modal-overlay { display: none; position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
+    .img-modal-overlay.visible { display: flex; }
+    .img-modal { background: var(--surface); border-radius: 12px; padding: 24px; width: 90%; max-width: 560px; max-height: 80vh; overflow-y: auto; }
+    .img-modal h3 { font-size: 1rem; font-weight: 700; margin-bottom: 16px; }
+    .img-upload-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 32px; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; margin-bottom: 16px; }
+    .img-upload-zone:hover, .img-upload-zone.dragover { border-color: var(--accent); background: var(--bg); }
+    .img-upload-zone p { font-size: 0.875rem; color: var(--text-light); margin-top: 8px; }
+    .img-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
+    .img-gallery-item { position: relative; aspect-ratio: 1; border-radius: 6px; overflow: hidden; cursor: pointer; border: 2px solid transparent; transition: border-color 0.15s; }
+    .img-gallery-item:hover { border-color: var(--accent); }
+    .img-gallery-item img { width: 100%; height: 100%; object-fit: cover; }
+    .img-gallery-item .del-btn { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.7); color: #fff; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; cursor: pointer; display: none; align-items: center; justify-content: center; }
+    .img-gallery-item:hover .del-btn { display: flex; }
+    .upload-progress { font-size: 0.8125rem; color: var(--text-light); margin: 8px 0; }
+
+    /* ── Stats panel ── */
+    .stats-panel { background: var(--surface); border-bottom: 1px solid var(--border); padding: 24px 32px; }
+    .stats-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .stats-title { font-size: 1rem; font-weight: 700; letter-spacing: -0.02em; }
+    .stats-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    .stats-table th { text-align: left; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-lighter); padding: 0 16px 10px 0; border-bottom: 1px solid var(--border); }
+    .stats-table td { padding: 10px 16px 10px 0; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+    .stats-table tr:last-child td { border-bottom: none; }
+    .stats-table td:first-child { font-weight: 500; }
+    .stats-num { font-variant-numeric: tabular-nums; font-weight: 600; }
+    .stats-bar-wrap { display: flex; align-items: center; gap: 8px; }
+    .stats-bar { height: 6px; border-radius: 3px; background: var(--accent); min-width: 2px; }
+    .stats-empty { color: var(--text-lighter); font-size: 0.875rem; padding: 16px 0; }
+
+    @media (max-width: 700px) {
+      .admin-body { flex-direction: column; padding: 16px; gap: 16px; }
+      .sidebar { width: 100%; }
+      .editor-wrap { min-width: 0; width: 100%; }
+      .editor-header { flex-wrap: wrap; gap: 8px; }
+      .editor-title-input { font-size: 1.1rem; width: 100%; }
+      .editor-actions { width: 100%; justify-content: flex-end; }
+      .editor-meta { grid-template-columns: 1fr; }
+      .meta-field-full { grid-column: 1; }
+      .EasyMDEContainer .CodeMirror { min-height: 300px; font-size: 1rem; }
+      .topbar { padding: 0 16px; }
+      .topbar-brand { font-size: 0.875rem; }
+      .mobile-editing .sidebar { display: none; }
+      .mobile-editing .editor-wrap { display: block; }
+      .btn-back { display: inline-flex; align-items: center; gap: 6px; background: none; border: none; font-family: var(--font); font-size: 0.875rem; color: var(--text-light); cursor: pointer; padding: 0 0 12px 0; text-decoration: underline; text-underline-offset: 2px; }
+      .img-modal { width: 95%; padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="auth-wrap" id="screen-setup">
+  <div class="auth-card">
+    <span class="auth-logo">Carlos Alberto — Blog</span>
+    <h1 class="auth-title">Configurar acceso</h1>
+    <p class="auth-subtitle">Registra tu autenticador. Este paso solo puede hacerse una vez.</p>
+    <div class="form-group">
+      <label class="form-label" for="setup-label">Nombre de la llave</label>
+      <input class="form-input" id="setup-label" type="text" value="YubiKey principal" autocomplete="off" />
+    </div>
+    <button class="btn btn-primary" id="btn-setup-yubikey">
+      🔑 Registrar YubiKey
+    </button>
+    <button class="btn" style="background:#f5f5f5;color:#333;border:1px solid #ddd;margin-top:8px;" id="btn-setup-passkey">
+      📱 Usar Face ID / Touch ID
+    </button>
+    <p class="status-msg" id="setup-msg"></p>
+  </div>
+</div>
+
+<div class="auth-wrap hidden" id="screen-login">
+  <div class="auth-card">
+    <span class="auth-logo">Carlos Alberto — Blog</span>
+    <h1 class="auth-title">Acceder</h1>
+    <p class="auth-subtitle">Autentícate con tu llave registrada.</p>
+    <button class="btn btn-primary" id="btn-login-yubikey">
+      🔑 Autenticar con YubiKey
+    </button>
+    <button class="btn" style="background:#f5f5f5;color:#333;border:1px solid #ddd;margin-top:8px;" id="btn-login-passkey">
+      📱 Autenticar con Face ID / Touch ID
+    </button>
+    <p class="status-msg" id="login-msg"></p>
+  </div>
+</div>
+
+<div class="admin-wrap" id="screen-admin">
+  <div class="topbar">
+    <span class="topbar-brand">✍️ Blog Admin</span>
+    <div class="topbar-actions">
+      <button class="topbar-link" id="btn-stats">📊 Stats</button>
+      <button class="topbar-link" id="btn-keys">🔑 Llaves</button>
+      <a href="/" class="topbar-link" target="_blank">Ver blog →</a>
+      <button class="topbar-link" id="btn-logout">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <!-- Stats panel -->
+  <div id="stats-panel" class="stats-panel hidden">
+    <div class="stats-header">
+      <h2 class="stats-title">Estadísticas</h2>
+      <button class="topbar-link" id="btn-stats-close">✕ Cerrar</button>
+    </div>
+    <div id="stats-content">Cargando...</div>
+  </div>
+
+  <!-- Keys panel -->
+  <div id="keys-panel" class="stats-panel hidden">
+    <div class="stats-header">
+      <h2 class="stats-title">Llaves de acceso</h2>
+      <button class="topbar-link" id="btn-keys-close">✕ Cerrar</button>
+    </div>
+    <div id="keys-list" style="margin-bottom:20px"></div>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <input class="form-input" id="new-key-label" type="text" placeholder="Nombre de la nueva llave" style="max-width:220px" />
+      <button class="btn btn-primary btn-sm" id="btn-add-key-yubikey">+ Añadir YubiKey</button>
+      <button class="btn btn-sm" style="background:#f5f5f5;color:#333;border:1px solid #ddd;" id="btn-add-key-passkey">+ Añadir Face ID</button>
+    </div>
+    <p class="status-msg" id="keys-msg" style="margin-top:12px"></p>
+  </div>
+  <div class="admin-body">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-title">Artículos</span>
+        <button class="btn btn-primary btn-sm" id="btn-new">+ Nuevo</button>
+      </div>
+      <ul class="post-list" id="post-list"></ul>
+    </div>
+    <div class="editor-wrap" id="editor-wrap">
+      <div id="editor-empty" class="empty-state">
+        <div style="font-size:2.5rem">✍️</div>
+        <p style="font-size:0.9375rem">Selecciona un artículo o crea uno nuevo</p>
+      </div>
+      <div id="editor-content" class="hidden">
+        <button class="btn-back" id="btn-back">← Artículos</button>
+        <div class="editor-header">
+          <input class="editor-title-input" id="ed-title" type="text" placeholder="Título del artículo..." />
+          <div class="editor-actions">
+            <button class="btn btn-outline btn-sm" id="btn-save-draft">Guardar borrador</button>
+            <button class="btn btn-primary btn-sm" id="btn-publish">Publicar →</button>
+          </div>
+        </div>
+        <div class="editor-meta">
+          <div class="meta-field">
+            <label>Slug (URL)</label>
+            <input type="text" id="ed-slug" placeholder="mi-articulo" />
+          </div>
+          <div class="meta-field">
+            <label>Tags (separados por coma)</label>
+            <input type="text" id="ed-tags" placeholder="personal, tecnología" />
+          </div>
+          <div class="meta-field meta-field-full">
+            <label>Descripción / subtítulo</label>
+            <textarea id="ed-desc" rows="2" placeholder="Una frase que resume el artículo..."></textarea>
+          </div>
+          <div class="meta-field">
+            <label>Imagen de portada</label>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="text" id="ed-cover" placeholder="/uploads/imagen.jpg" style="flex:1" />
+              <button class="btn btn-outline btn-sm" type="button" id="btn-cover-upload" style="width:auto;flex-shrink:0;padding:6px 10px;font-size:0.75rem">📷</button>
+            </div>
+            <div class="cover-preview" id="cover-preview"></div>
+          </div>
+          <div class="meta-field">
+            <label>Fecha</label>
+            <input type="date" id="ed-date" />
+          </div>
+        </div>
+        <textarea id="ed-body"></textarea>
+        <div class="editor-hint">
+          <span id="ed-wordcount">0 palabras</span>
+          <span>·</span>
+          <span>Arrastra una imagen al editor o usa el botón 📷</span>
+        </div>
+        <div class="status-msg" id="editor-msg" style="margin-top: 16px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Image gallery modal -->
+<div class="img-modal-overlay" id="img-modal">
+  <div class="img-modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3 style="margin:0">📷 Imágenes</h3>
+      <button class="topbar-link" id="img-modal-close">✕ Cerrar</button>
+    </div>
+    <div class="img-upload-zone" id="img-upload-zone">
+      <div style="font-size:1.5rem">📤</div>
+      <p>Arrastra una imagen aquí o haz clic para subir</p>
+      <input type="file" id="img-file-input" accept="image/*" style="display:none" multiple />
+    </div>
+    <p class="upload-progress" id="upload-progress"></p>
+    <div class="img-gallery" id="img-gallery"></div>
+  </div>
+</div>
+
+<script>
+  const API = '/api';
+  let easyMDE = null;
+  let imageInsertCallback = null; // 'editor' or 'cover'
+
+  function show(id) {
+    ['screen-setup','screen-login','screen-admin'].forEach(s => {
+      document.getElementById(s).classList.toggle('hidden', s !== id);
+    });
+    if (id === 'screen-admin') {
+      document.getElementById('screen-admin').classList.remove('hidden');
+      document.getElementById('screen-admin').classList.add('visible');
+    }
+  }
+
+  function setMsg(id, msg, type) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.className = 'status-msg ' + (type || 'info');
+  }
+
+  async function init() {
+    try {
+      const meRes = await fetch(API + '/auth/me', { credentials: 'include' });
+      if (meRes.ok) { show('screen-admin'); loadPosts(); return; }
+      const statusRes = await fetch(API + '/auth/setup-status');
+      const status = await statusRes.json();
+      show(status.hasCredentials ? 'screen-login' : 'screen-setup');
+    } catch(e) {
+      setMsg('setup-msg', 'Error conectando con la API: ' + e.message, 'error');
+    }
+  }
+
+  // ── Auth: Setup ──────────────────────────────────────────────────────────
+  async function doSetup(authenticatorType) {
+    const label = document.getElementById('setup-label').value.trim() || 'YubiKey';
+    document.getElementById('btn-setup-yubikey').disabled = true;
+    document.getElementById('btn-setup-passkey').disabled = true;
+    setMsg('setup-msg', 'Solicitando opciones...', 'info');
+    try {
+      const optsRes = await fetch(API + '/auth/register/options', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', body: JSON.stringify({ username: 'carlos', authenticatorType }),
+      });
+      const opts = await optsRes.json();
+      if (opts.error) throw new Error(opts.error);
+      setMsg('setup-msg', authenticatorType === 'platform'
+        ? '📱 Sigue las instrucciones del navegador...'
+        : '🔑 Toca tu YubiKey e introduce el PIN si se te pide...', 'info');
+      const response = await SimpleWebAuthnBrowser.startRegistration({ optionsJSON: opts });
+      const verifyRes = await fetch(API + '/auth/register/verify', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', body: JSON.stringify({ response, label }),
+      });
+      const result = await verifyRes.json();
+      if (!result.verified) throw new Error(result.error || 'Verificación fallida');
+      setMsg('setup-msg', '✅ Autenticador registrado. Accediendo...', 'success');
+      setTimeout(() => { show('screen-admin'); loadPosts(); }, 800);
+    } catch(e) {
+      setMsg('setup-msg', e.message, 'error');
+      document.getElementById('btn-setup-yubikey').disabled = false;
+      document.getElementById('btn-setup-passkey').disabled = false;
+    }
+  }
+
+  document.getElementById('btn-setup-yubikey').addEventListener('click', () => doSetup('cross-platform'));
+  document.getElementById('btn-setup-passkey').addEventListener('click', () => doSetup('platform'));
+
+  // ── Auth: Login ──────────────────────────────────────────────────────────
+  async function doLogin() {
+    document.getElementById('btn-login-yubikey').disabled = true;
+    document.getElementById('btn-login-passkey').disabled = true;
+    setMsg('login-msg', 'Esperando autenticador...', 'info');
+    try {
+      const optsRes = await fetch(API + '/auth/login/options', { method: 'POST', credentials: 'include' });
+      const opts = await optsRes.json();
+      if (opts.error) throw new Error(opts.error);
+      const response = await SimpleWebAuthnBrowser.startAuthentication({ optionsJSON: opts });
+      const verifyRes = await fetch(API + '/auth/login/verify', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', body: JSON.stringify({ response }),
+      });
+      const result = await verifyRes.json();
+      if (!result.verified) throw new Error(result.error || 'Verificación fallida');
+      show('screen-admin'); loadPosts();
+    } catch(e) {
+      setMsg('login-msg', '❌ ' + e.message, 'error');
+      document.getElementById('btn-login-yubikey').disabled = false;
+      document.getElementById('btn-login-passkey').disabled = false;
+    }
+  }
+
+  document.getElementById('btn-login-yubikey').addEventListener('click', doLogin);
+  document.getElementById('btn-login-passkey').addEventListener('click', doLogin);
+
+  document.getElementById('btn-logout').addEventListener('click', async () => {
+    await fetch(API + '/auth/logout', { method: 'POST', credentials: 'include' });
+    show('screen-login');
+  });
+
+  // ── Posts CRUD ───────────────────────────────────────────────────────────
+  let currentSlug = null;
+
+  async function loadPosts() {
+    try {
+      const res = await fetch(API + '/admin/posts', { credentials: 'include' });
+      const posts = await res.json();
+      const list = document.getElementById('post-list');
+      list.innerHTML = '';
+      posts.sort((a,b) => b.pubDate.localeCompare(a.pubDate)).forEach(p => {
+        const li = document.createElement('li');
+        li.className = 'post-item' + (p.slug === currentSlug ? ' active' : '');
+        li.dataset.slug = p.slug;
+        li.innerHTML = '<span class="post-item-title">' + p.title + '</span>' + (p.draft ? '<span class="post-item-draft">borrador</span>' : '');
+        li.addEventListener('click', () => loadPost(p.slug));
+        list.appendChild(li);
+      });
+    } catch(e) { console.error('loadPosts:', e); }
+  }
+
+  function initEasyMDE() {
+    if (easyMDE) return;
+    easyMDE = new EasyMDE({
+      element: document.getElementById('ed-body'),
+      spellChecker: false,
+      autosave: false,
+      placeholder: 'Escribe tu artículo aquí...\n\nUsa Markdown: **negrita**, *cursiva*, ## títulos, ![imagen](url)',
+      status: ['words', 'cursor'],
+      minHeight: '400px',
+      toolbar: [
+        'bold', 'italic', 'strikethrough', '|',
+        'heading-1', 'heading-2', 'heading-3', '|',
+        'quote', 'unordered-list', 'ordered-list', '|',
+        'link',
+        { name: 'image', action: () => openImageModal('editor'), className: 'fa fa-image', title: 'Insertar imagen (📷)', text: '📷' },
+        'table', '|',
+        'code', 'horizontal-rule', '|',
+        'preview', 'side-by-side', 'fullscreen', '|',
+        'undo', 'redo',
+      ],
+      previewRender: (text) => {
+        // Simple markdown preview (EasyMDE's built-in)
+        return EasyMDE.prototype.markdown(text);
+      },
+      uploadImage: false, // We handle uploads ourselves
+    });
+    easyMDE.codemirror.on('change', updateWordcount);
+    // Drag & drop image upload on the editor
+    easyMDE.codemirror.on('drop', async (cm, e) => {
+      const files = e.dataTransfer?.files;
+      if (!files || files.length === 0) return;
+      const file = files[0];
+      if (!file.type.startsWith('image/')) return;
+      e.preventDefault();
+      const url = await uploadFile(file);
+      if (url) {
+        const cursor = cm.getCursor();
+        cm.replaceRange(`\n![${file.name}](${url})\n`, cursor);
+      }
+    });
+    // Paste image upload
+    easyMDE.codemirror.on('paste', async (cm, e) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          e.preventDefault();
+          const file = item.getAsFile();
+          if (!file) continue;
+          const url = await uploadFile(file);
+          if (url) {
+            const cursor = cm.getCursor();
+            cm.replaceRange(`![imagen](${url})`, cursor);
+          }
+          return;
+        }
+      }
+    });
+  }
+
+  async function loadPost(slug) {
+    currentSlug = slug;
+    document.querySelectorAll('.post-item').forEach(el => el.classList.toggle('active', el.dataset.slug === slug));
+    const res = await fetch(API + '/admin/posts/' + slug, { credentials: 'include' });
+    const { content } = await res.json();
+    const fm = {};
+    const fmMatch = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+    if (fmMatch) {
+      fmMatch[1].split('\n').forEach(line => {
+        const m = line.match(/^(\w+):\s*(.+)$/);
+        if (m) fm[m[1]] = m[2].replace(/^["']|["']$/g, '');
+      });
+    }
+    document.getElementById('ed-slug').value = slug;
+    document.getElementById('ed-title').value = fm.title || '';
+    document.getElementById('ed-desc').value = fm.description || '';
+    document.getElementById('ed-tags').value = (fm.tags || '').replace(/[\[\]]/g,'');
+    document.getElementById('ed-cover').value = fm.cover || '';
+    document.getElementById('ed-date').value = fm.pubDate || new Date().toISOString().slice(0,10);
+    updateCoverPreview();
+
+    document.getElementById('editor-empty').classList.add('hidden');
+    document.getElementById('editor-content').classList.remove('hidden');
+    initEasyMDE();
+    easyMDE.value(fmMatch ? fmMatch[2].trim() : content);
+    updateWordcount();
+    if (window.innerWidth <= 700) {
+      document.getElementById('screen-admin').classList.add('mobile-editing');
+    }
+  }
+
+  function buildMarkdown(draft) {
+    const title = document.getElementById('ed-title').value;
+    const desc = document.getElementById('ed-desc').value;
+    const tags = document.getElementById('ed-tags').value.split(',').map(t=>t.trim()).filter(Boolean);
+    const cover = document.getElementById('ed-cover').value;
+    const date = document.getElementById('ed-date').value || new Date().toISOString().slice(0,10);
+    const bodyText = easyMDE ? easyMDE.value() : '';
+    const tagsStr = tags.length ? '[' + tags.map(t=>'"'+t+'"').join(', ') + ']' : '[]';
+    return '---\ntitle: "' + title + '"\ndescription: "' + desc + '"\npubDate: ' + date + (cover ? '\ncover: "' + cover + '"' : '') + '\ntags: ' + tagsStr + '\ndraft: ' + (draft ? 'true' : 'false') + '\n---\n\n' + bodyText;
+  }
+
+  async function savePost(draft) {
+    const slug = document.getElementById('ed-slug').value.trim().toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'') || 'sin-titulo';
+    document.getElementById('ed-slug').value = slug;
+    setMsg('editor-msg', draft ? 'Guardando borrador...' : 'Publicando y desplegando...', 'info');
+    const res = await fetch(API + '/admin/posts/' + slug, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      credentials: 'include', body: JSON.stringify({ content: buildMarkdown(draft), deploy: !draft }),
+    });
+    const result = await res.json();
+    if (result.ok) {
+      setMsg('editor-msg', draft ? '✅ Borrador guardado' : '✅ Publicado en blog.calbertts.com', 'success');
+      currentSlug = slug;
+      loadPosts();
+    } else {
+      setMsg('editor-msg', result.error || 'Error al guardar', 'error');
+    }
+  }
+
+  document.getElementById('btn-save-draft').addEventListener('click', () => savePost(true));
+  document.getElementById('btn-publish').addEventListener('click', () => savePost(false));
+
+  document.getElementById('btn-back').addEventListener('click', () => {
+    document.getElementById('screen-admin').classList.remove('mobile-editing');
+    document.getElementById('editor-content').classList.add('hidden');
+    document.getElementById('editor-empty').classList.remove('hidden');
+    currentSlug = null;
+    document.querySelectorAll('.post-item').forEach(el => el.classList.remove('active'));
+  });
+
+  document.getElementById('btn-new').addEventListener('click', () => {
+    currentSlug = null;
+    document.querySelectorAll('.post-item').forEach(el => el.classList.remove('active'));
+    ['ed-title','ed-slug','ed-desc','ed-tags','ed-cover'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('ed-date').value = new Date().toISOString().slice(0,10);
+    document.getElementById('editor-msg').className = 'status-msg';
+    document.getElementById('cover-preview').innerHTML = '';
+    document.getElementById('editor-empty').classList.add('hidden');
+    document.getElementById('editor-content').classList.remove('hidden');
+    initEasyMDE();
+    easyMDE.value('');
+    if (window.innerWidth <= 700) {
+      document.getElementById('screen-admin').classList.add('mobile-editing');
+    }
+    updateWordcount();
+    document.getElementById('ed-title').focus();
+  });
+
+  document.getElementById('ed-title').addEventListener('input', e => {
+    if (!currentSlug) {
+      document.getElementById('ed-slug').value = e.target.value
+        .toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+        .replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'').slice(0,60);
+    }
+  });
+
+  function updateWordcount() {
+    const text = easyMDE ? easyMDE.value() : '';
+    const words = text.split(/\s+/).filter(Boolean).length;
+    document.getElementById('ed-wordcount').textContent = words + ' palabras';
+  }
+
+  // ── Cover preview ─────────────────────────────────────────────────────────
+  function updateCoverPreview() {
+    const val = document.getElementById('ed-cover').value.trim();
+    const preview = document.getElementById('cover-preview');
+    if (val) {
+      preview.innerHTML = '<img src="' + val + '" alt="Portada" onerror="this.parentElement.innerHTML=\'\'" />';
+    } else {
+      preview.innerHTML = '';
+    }
+  }
+  document.getElementById('ed-cover').addEventListener('input', updateCoverPreview);
+
+  // ── Image upload system ──────────────────────────────────────────────────
+  async function uploadFile(file) {
+    const progress = document.getElementById('upload-progress');
+    progress.textContent = '⏳ Subiendo ' + file.name + '...';
+    try {
+      const fd = new FormData();
+      fd.append('image', file);
+      const res = await fetch(API + '/admin/upload', { method: 'POST', credentials: 'include', body: fd });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      progress.textContent = '✅ ' + file.name + ' subida';
+      setTimeout(() => progress.textContent = '', 3000);
+      return data.url;
+    } catch (e) {
+      progress.textContent = '❌ Error: ' + e.message;
+      return null;
+    }
+  }
+
+  function openImageModal(mode) {
+    imageInsertCallback = mode; // 'editor' or 'cover'
+    document.getElementById('img-modal').classList.add('visible');
+    loadGallery();
+  }
+
+  async function loadGallery() {
+    const gallery = document.getElementById('img-gallery');
+    gallery.innerHTML = '<p style="color:var(--text-lighter);font-size:0.875rem">Cargando...</p>';
+    try {
+      const res = await fetch(API + '/admin/uploads', { credentials: 'include' });
+      const images = await res.json();
+      if (!images.length) { gallery.innerHTML = '<p style="color:var(--text-lighter);font-size:0.875rem">No hay imágenes aún</p>'; return; }
+      gallery.innerHTML = images.map(img => `
+        <div class="img-gallery-item" data-url="${img.url}">
+          <img src="${img.url}" alt="${img.name}" loading="lazy" />
+          <button class="del-btn" data-name="${img.name}" title="Eliminar">✕</button>
+        </div>
+      `).join('');
+      // Click to insert
+      gallery.querySelectorAll('.img-gallery-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+          if (e.target.classList.contains('del-btn')) return;
+          const url = item.dataset.url;
+          insertImage(url);
+          closeImageModal();
+        });
+      });
+      // Delete buttons
+      gallery.querySelectorAll('.del-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          if (!confirm('¿Eliminar esta imagen?')) return;
+          await fetch(API + '/admin/uploads/' + btn.dataset.name, { method: 'DELETE', credentials: 'include' });
+          loadGallery();
+        });
+      });
+    } catch { gallery.innerHTML = '<p style="color:var(--text-lighter)">Error cargando galería</p>'; }
+  }
+
+  function insertImage(url) {
+    if (imageInsertCallback === 'cover') {
+      document.getElementById('ed-cover').value = url;
+      updateCoverPreview();
+    } else if (easyMDE) {
+      const cm = easyMDE.codemirror;
+      const cursor = cm.getCursor();
+      cm.replaceRange(`\n![](${url})\n`, cursor);
+      cm.focus();
+    }
+  }
+
+  function closeImageModal() {
+    document.getElementById('img-modal').classList.remove('visible');
+    imageInsertCallback = null;
+  }
+
+  document.getElementById('img-modal-close').addEventListener('click', closeImageModal);
+  document.getElementById('img-modal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('img-modal')) closeImageModal();
+  });
+
+  // Upload zone: click + drag
+  const uploadZone = document.getElementById('img-upload-zone');
+  const fileInput = document.getElementById('img-file-input');
+
+  uploadZone.addEventListener('click', () => fileInput.click());
+  uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+  uploadZone.addEventListener('drop', async e => {
+    e.preventDefault();
+    uploadZone.classList.remove('dragover');
+    for (const file of e.dataTransfer.files) {
+      if (!file.type.startsWith('image/')) continue;
+      const url = await uploadFile(file);
+      if (url) loadGallery();
+    }
+  });
+  fileInput.addEventListener('change', async () => {
+    for (const file of fileInput.files) {
+      const url = await uploadFile(file);
+      if (url) loadGallery();
+    }
+    fileInput.value = '';
+  });
+
+  // Cover upload button
+  document.getElementById('btn-cover-upload').addEventListener('click', () => openImageModal('cover'));
+
+  // ── Stats ────────────────────────────────────────────────────────────────
+  async function loadStats() {
+    const panel = document.getElementById('stats-panel');
+    const content = document.getElementById('stats-content');
+    panel.classList.remove('hidden');
+    content.innerHTML = '<p class="stats-empty">Cargando...</p>';
+    try {
+      const res = await fetch(API + '/admin/stats', { credentials: 'include' });
+      const stats = await res.json();
+      if (!Array.isArray(stats) || stats.length === 0) {
+        content.innerHTML = '<p class="stats-empty">Aún no hay datos de visitas o likes.</p>';
+        return;
+      }
+      const maxViews = Math.max(...stats.map(s => s.views || 0), 1);
+      const totalViews = stats.reduce((a, s) => a + (s.views || 0), 0);
+      const totalLikes = stats.reduce((a, s) => a + (s.likes || 0), 0);
+      content.innerHTML = `
+        <div style="display:flex;gap:32px;margin-bottom:20px;flex-wrap:wrap">
+          <div><span style="font-size:1.75rem;font-weight:900">${totalViews}</span><br><span style="font-size:0.75rem;color:var(--text-lighter);text-transform:uppercase;letter-spacing:.05em">Visitas totales</span></div>
+          <div><span style="font-size:1.75rem;font-weight:900">${totalLikes}</span><br><span style="font-size:0.75rem;color:var(--text-lighter);text-transform:uppercase;letter-spacing:.05em">Likes totales</span></div>
+          <div><span style="font-size:1.75rem;font-weight:900">${stats.length}</span><br><span style="font-size:0.75rem;color:var(--text-lighter);text-transform:uppercase;letter-spacing:.05em">Artículos</span></div>
+        </div>
+        <table class="stats-table"><thead><tr><th>Artículo</th><th>Visitas</th><th></th><th>Likes</th></tr></thead><tbody>
+          ${stats.map(s => `<tr><td>${s.title || s.slug}</td><td class="stats-num">${s.views || 0}</td><td style="width:160px"><div class="stats-bar-wrap"><div class="stats-bar" style="width:${Math.round(((s.views||0)/maxViews)*140)}px;opacity:0.85"></div></div></td><td class="stats-num">❤️ ${s.likes || 0}</td></tr>`).join('')}
+        </tbody></table>`;
+    } catch { content.innerHTML = '<p class="stats-empty">Error cargando estadísticas.</p>'; }
+  }
+
+  document.getElementById('btn-stats').addEventListener('click', () => {
+    document.getElementById('keys-panel').classList.add('hidden');
+    const panel = document.getElementById('stats-panel');
+    if (panel.classList.contains('hidden')) { loadStats(); } else { panel.classList.add('hidden'); }
+  });
+  document.getElementById('btn-stats-close').addEventListener('click', () => {
+    document.getElementById('stats-panel').classList.add('hidden');
+  });
+
+  // ── Keys management ──────────────────────────────────────────────────────
+  async function loadKeys() {
+    const list = document.getElementById('keys-list');
+    list.innerHTML = '<p class="stats-empty">Cargando...</p>';
+    try {
+      const res = await fetch(API + '/auth/credentials', { credentials: 'include' });
+      const keys = await res.json();
+      if (!keys.length) { list.innerHTML = '<p class="stats-empty">Sin llaves registradas.</p>'; return; }
+      list.innerHTML = '<table class="stats-table"><thead><tr><th>Nombre</th><th>Registrada</th></tr></thead><tbody>' +
+        keys.map(k => `<tr><td style="font-weight:500">🔑 ${k.label || 'YubiKey'}</td><td style="color:var(--text-lighter)">${k.created_at ? k.created_at.slice(0,10) : ''}</td></tr>`).join('') +
+        '</tbody></table>';
+    } catch { list.innerHTML = '<p class="stats-empty">Error cargando llaves.</p>'; }
+  }
+
+  const prefetchedOpts = {};
+
+  async function prefetchAddKeyOpts(authenticatorType) {
+    try {
+      const r = await fetch(API + '/auth/credentials/add/options', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        credentials: 'include', body: JSON.stringify({ authenticatorType }),
+      });
+      const opts = await r.json();
+      if (!opts.error) prefetchedOpts[authenticatorType] = opts;
+    } catch {}
+  }
+
+  document.getElementById('btn-keys').addEventListener('click', () => {
+    document.getElementById('stats-panel').classList.add('hidden');
+    const panel = document.getElementById('keys-panel');
+    if (panel.classList.contains('hidden')) {
+      panel.classList.remove('hidden');
+      loadKeys();
+      prefetchAddKeyOpts('cross-platform');
+      prefetchAddKeyOpts('platform');
+    } else { panel.classList.add('hidden'); }
+  });
+  document.getElementById('btn-keys-close').addEventListener('click', () => {
+    document.getElementById('keys-panel').classList.add('hidden');
+  });
+
+  function browserInfo() {
+    const ua = navigator.userAgent;
+    const isIOS = /iPhone|iPad|iPod/.test(ua);
+    const isChromeiOS = /CriOS/.test(ua);
+    return { isIOS, isChromeiOS };
+  }
+
+  function b64urlToBuffer(b64url) {
+    const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
+    const pad = b64.length % 4 === 0 ? '' : '='.repeat(4 - b64.length % 4);
+    const bin = atob(b64 + pad);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes.buffer;
+  }
+  function bufferToB64url(buf) {
+    const bytes = new Uint8Array(buf);
+    let str = '';
+    for (const b of bytes) str += String.fromCharCode(b);
+    return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  }
+
+  async function doAddKey(authenticatorType) {
+    const label = document.getElementById('new-key-label').value.trim() || (authenticatorType === 'platform' ? 'Face ID' : 'YubiKey');
+    document.getElementById('btn-add-key-yubikey').disabled = true;
+    document.getElementById('btn-add-key-passkey').disabled = true;
+    const { isIOS, isChromeiOS } = browserInfo();
+    if (authenticatorType === 'cross-platform' && isIOS && isChromeiOS) {
+      setMsg('keys-msg', '⚠️ Chrome en iPhone no soporta YubiKey. Abre en Safari.', 'error');
+      document.getElementById('btn-add-key-yubikey').disabled = false;
+      document.getElementById('btn-add-key-passkey').disabled = false;
+      return;
+    }
+    try {
+      let opts = prefetchedOpts[authenticatorType];
+      if (opts) { delete prefetchedOpts[authenticatorType]; }
+      else {
+        setMsg('keys-msg', '⏳ Cargando...', 'info');
+        const r = await fetch(API + '/auth/credentials/add/options', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          credentials: 'include', body: JSON.stringify({ authenticatorType }),
+        });
+        opts = await r.json();
+        if (opts.error) throw new Error('Servidor: ' + opts.error);
+      }
+      const cleanOpts = {
+        challenge: b64urlToBuffer(opts.challenge),
+        rp: { id: opts.rp.id, name: opts.rp.name },
+        user: { id: b64urlToBuffer(opts.user.id), name: opts.user.name, displayName: opts.user.name },
+        pubKeyCredParams: [{ alg: -7, type: 'public-key' }, { alg: -257, type: 'public-key' }],
+        timeout: 120000, attestation: 'none',
+      };
+      if (opts.excludeCredentials?.length) {
+        cleanOpts.excludeCredentials = opts.excludeCredentials.map(c => ({
+          id: b64urlToBuffer(c.id), type: c.type || 'public-key',
+        }));
+      }
+      if (authenticatorType === 'platform') {
+        cleanOpts.authenticatorSelection = { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'required' };
+      } else {
+        cleanOpts.authenticatorSelection = { residentKey: 'preferred', userVerification: 'preferred' };
+      }
+      setMsg('keys-msg', authenticatorType === 'platform'
+        ? '📱 Sigue las instrucciones del navegador...'
+        : '🔑 Acerca la YubiKey a la parte superior del iPhone y mantenla fija...', 'info');
+      const cred = await navigator.credentials.create({ publicKey: cleanOpts });
+      const response = {
+        id: cred.id, rawId: bufferToB64url(cred.rawId),
+        response: {
+          attestationObject: bufferToB64url(cred.response.attestationObject),
+          clientDataJSON: bufferToB64url(cred.response.clientDataJSON),
+          transports: cred.response.getTransports ? cred.response.getTransports() : [],
+        },
+        type: cred.type,
+      };
+      setMsg('keys-msg', '✅ Verificando...', 'info');
+      const verifyRes = await fetch(API + '/auth/credentials/add/verify', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', body: JSON.stringify({ response, label, authenticatorType }),
+      });
+      const result = await verifyRes.json();
+      if (!result.verified) throw new Error(result.error || 'Error al verificar');
+      setMsg('keys-msg', '✅ Llave añadida correctamente', 'success');
+      document.getElementById('new-key-label').value = '';
+      prefetchAddKeyOpts('cross-platform');
+      prefetchAddKeyOpts('platform');
+      loadKeys();
+    } catch(e) {
+      setMsg('keys-msg', '❌ ' + e.message, 'error');
+      prefetchAddKeyOpts(authenticatorType);
+    } finally {
+      document.getElementById('btn-add-key-yubikey').disabled = false;
+      document.getElementById('btn-add-key-passkey').disabled = false;
+    }
+  }
+
+  document.getElementById('btn-add-key-yubikey').addEventListener('click', () => doAddKey('cross-platform'));
+  document.getElementById('btn-add-key-passkey').addEventListener('click', () => doAddKey('platform'));
+
+  init();
+</script>
+</body>
+</html>

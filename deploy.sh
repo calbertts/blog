@@ -18,6 +18,7 @@ docker run -d \
   --name blog \
   --network proxy \
   --restart unless-stopped \
+  -v /home/calbertts/data/blog-uploads:/usr/share/nginx/html/uploads \
   blog:latest
 
 echo "✅ Blog deployed!"

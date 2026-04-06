@@ -94,34 +94,38 @@ const slug = post.id;
 </BaseLayout>
 
 <script>
-  const API = 'https://api.blog.calbertts.com';
+  const API = '/api';
+
+  async function initViews() {
+    const slug = document.getElementById('likes-btn')?.dataset.slug;
+    if (!slug) return;
+    // Track view once per session
+    const key = `viewed_${slug}`;
+    if (!sessionStorage.getItem(key)) {
+      sessionStorage.setItem(key, '1');
+      fetch(`${API}/views/${slug}`, { method: 'POST' }).catch(() => {});
+    }
+  }
 
   async function initLikes() {
     const btn = document.getElementById('likes-btn') as HTMLButtonElement;
     const countEl = document.getElementById('likes-count') as HTMLSpanElement;
-    const iconEl = document.getElementById('likes-icon') as HTMLSpanElement;
     if (!btn) return;
 
     const slug = btn.dataset.slug!;
-    const storageKey = `liked_${slug}`;
-    const liked = localStorage.getItem(storageKey) === '1';
 
-    // Cargar conteo
     try {
       const res = await fetch(`${API}/likes/${slug}`);
       const data = await res.json();
       countEl.textContent = data.count;
+      if (data.liked) btn.classList.add('liked');
     } catch {
       countEl.textContent = '0';
     }
 
-    // Estado visual inicial
-    if (liked) btn.classList.add('liked');
-
     btn.addEventListener('click', async () => {
       const isLiked = btn.classList.contains('liked');
       btn.classList.toggle('liked');
-      localStorage.setItem(storageKey, isLiked ? '0' : '1');
 
       try {
         const res = await fetch(`${API}/likes/${slug}`, {
@@ -131,14 +135,16 @@ const slug = post.id;
         });
         const data = await res.json();
         countEl.textContent = data.count;
+        // Sync with server state
+        if (data.liked) btn.classList.add('liked');
+        else btn.classList.remove('liked');
       } catch {
-        // revertir si falla
-        btn.classList.toggle('liked');
-        localStorage.setItem(storageKey, isLiked ? '1' : '0');
+        btn.classList.toggle('liked'); // revert
       }
     });
   }
 
+  initViews();
   initLikes();
 </script>
 

@@ -47,7 +47,7 @@ const readingTime = Math.ceil(post.body.split(/\s+/).length / 200);
 </article>
 
 <script>
-  const API = 'https://api.blog.calbertts.com';
+  const API = '/api';
 
   document.querySelectorAll('.card-likes').forEach(async (el) => {
     const slug = (el as HTMLElement).dataset.slug!;

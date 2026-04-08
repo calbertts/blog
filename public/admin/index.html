@@ -872,9 +872,23 @@ Usa Markdown: **negrita**, *cursiva*, ## títulos, ![imagen](url)"></textarea>
       const res = await fetch(API + '/auth/credentials', { credentials: 'include' });
       const keys = await res.json();
       if (!keys.length) { list.innerHTML = '<p class="stats-empty">Sin llaves registradas.</p>'; return; }
-      list.innerHTML = '<table class="stats-table"><thead><tr><th>Nombre</th><th>Registrada</th></tr></thead><tbody>' +
-        keys.map(k => `<tr><td style="font-weight:500">🔑 ${k.label || 'YubiKey'}</td><td style="color:var(--text-lighter)">${k.created_at ? k.created_at.slice(0,10) : ''}</td></tr>`).join('') +
+      const canDelete = keys.length > 1;
+      list.innerHTML = '<table class="stats-table"><thead><tr><th>Nombre</th><th>Registrada</th><th></th></tr></thead><tbody>' +
+        keys.map(k => `<tr><td style="font-weight:500">🔑 ${k.label || 'Llave'}</td><td style="color:var(--text-lighter)">${k.created_at ? k.created_at.slice(0,10) : ''}</td><td style="text-align:right">${canDelete ? `<button class="btn-del-key" data-id="${k.id}" title="Eliminar llave" style="background:none;border:none;cursor:pointer;color:var(--danger);font-size:0.8125rem;padding:4px 8px;border-radius:4px;">✕</button>` : '<span style="font-size:0.75rem;color:var(--text-lighter)" title="Debe quedar al menos una llave">🔒</span>'}</td></tr>`).join('') +
         '</tbody></table>';
+      list.querySelectorAll('.btn-del-key').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('¿Eliminar esta llave? Esta acción no se puede deshacer.')) return;
+          btn.disabled = true; btn.textContent = '...';
+          try {
+            const r = await fetch(API + '/auth/credentials/' + btn.dataset.id, { method: 'DELETE', credentials: 'include' });
+            const result = await r.json();
+            if (result.error) { setMsg('keys-msg', '❌ ' + result.error, 'error'); return; }
+            setMsg('keys-msg', '✅ Llave eliminada', 'success');
+            loadKeys();
+          } catch(e) { setMsg('keys-msg', '❌ ' + e.message, 'error'); }
+        });
+      });
     } catch { list.innerHTML = '<p class="stats-empty">Error cargando llaves.</p>'; }
   }
 

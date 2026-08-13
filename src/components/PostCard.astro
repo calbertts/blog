@@ -8,7 +8,7 @@ interface Props {
 const { post } = Astro.props;
 const { title, description, pubDate, cover, tags } = post.data;
 
-const formattedDate = pubDate.toLocaleDateString('en-US', {
+const formattedDate = pubDate.toLocaleDateString('es', {
   month: 'short', day: 'numeric', year: 'numeric'
 });
 
@@ -19,14 +19,14 @@ const readingTime = Math.ceil(post.body.split(/\s+/).length / 200);
   <a href={`/blog/${post.id}`} class="card-link">
     <div class="card-text">
       <p class="card-byline">
-        {tags.length > 0 ? tags[0] : 'Personal'}
+        {tags.length > 0 ? tags[0] : <span data-i18n="personal_tag">Personal</span>}
       </p>
       <h2 class="card-title">{title}</h2>
       <p class="card-desc">{description}</p>
       <div class="card-meta">
-        <time datetime={pubDate.toISOString()}>{formattedDate}</time>
+        <time datetime={pubDate.toISOString()} data-date-short>{formattedDate}</time>
         <span class="meta-dot">·</span>
-        <span>{readingTime} min read</span>
+        <span data-i18n="reading_time" data-i18n-count={readingTime}>{readingTime} min de lectura</span>
         <span class="meta-dot">·</span>
         <span class="card-likes" data-slug={post.id}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="vertical-align: middle; margin-right: 3px;">

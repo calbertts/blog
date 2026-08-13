@@ -11,7 +11,7 @@ interface Props {
 const { post } = Astro.props;
 const { title, description, pubDate, updatedDate, cover, tags } = post.data;
 
-const formattedDate = pubDate.toLocaleDateString('en-US', {
+const formattedDate = pubDate.toLocaleDateString('es', {
   year: 'numeric', month: 'long', day: 'numeric'
 });
 
@@ -46,13 +46,13 @@ const slug = post.id;
 
       <!-- Meta -->
       <div class="article-meta">
-        <span class="meta-reading">{readingTime} min read</span>
+        <span class="meta-reading" data-i18n="reading_time" data-i18n-count={readingTime}>{readingTime} min de lectura</span>
         <span class="meta-sep">·</span>
         <time datetime={pubDate.toISOString()}>{formattedDate}</time>
         {updatedDate && (
           <>
             <span class="meta-sep">·</span>
-            <span>Updated {updatedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+            <span><span data-i18n="updated_label">Actualizado</span> <time datetime={updatedDate.toISOString()} data-date-short>{updatedDate.toLocaleDateString('es', { month: 'short', day: 'numeric', year: 'numeric' })}</time></span>
           </>
         )}
       </div>
@@ -73,7 +73,7 @@ const slug = post.id;
 
       <!-- Likes -->
       <div class="likes-section">
-        <button class="likes-btn" id="likes-btn" data-slug={slug} aria-label="Me gusta">
+        <button class="likes-btn" id="likes-btn" data-slug={slug} aria-label="Me gusta" data-i18n-aria="likes_aria">
           <span class="likes-icon" id="likes-icon">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
@@ -86,7 +86,7 @@ const slug = post.id;
     </article>
 
     <div class="back-wrap">
-      <a href="/" class="back-link">← All posts</a>
+      <a href="/" class="back-link" data-i18n="back_all_posts">← Todos los artículos</a>
     </div>
   </main>
 

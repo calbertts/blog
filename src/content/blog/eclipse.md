@@ -2,6 +2,7 @@
 title: "Lo que un eclipse enseña sobre la oscuridad"
 description: "Una pequeña franja visible del sol puede marcar toda la diferencia entre el día y la noche."
 pubDate: 2026-08-13
+cover: "/og-eclipse.png"
 tags: ["personal", "reflexión"]
 draft: false
 ---

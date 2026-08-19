@@ -30,11 +30,15 @@ const [featured, ...rest] = posts;
           )}
 
           {rest.length > 0 && (
-            <section class="posts-section">
-              {rest.map((post) => (
-                <PostCard post={post} />
-              ))}
-            </section>
+            <>
+              <hr class="moon-divider" />
+              <section class="posts-section">
+                <h2 class="section-heading" data-i18n="all_texts">Todos los textos</h2>
+                {rest.map((post) => (
+                  <PostCard post={post} />
+                ))}
+              </section>
+            </>
           )}
         </>
       )}
@@ -48,16 +52,35 @@ const [featured, ...rest] = posts;
 <style>
   .main-content {
     min-height: calc(100vh - 64px);
-    padding: 48px 24px 0;
+    padding: 72px 24px 0;
   }
 
   .content-grid {
-    max-width: var(--reading-width);
+    max-width: var(--header-width);
     margin: 0 auto;
   }
 
   .featured-section {
-    margin-bottom: 16px;
+    margin-bottom: 56px;
+  }
+
+  .moon-divider {
+    margin: 0 0 8px;
+  }
+
+  .posts-section {
+    margin-top: 56px;
+    padding-bottom: 40px;
+  }
+
+  .section-heading {
+    font-family: var(--font-ui);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-text-lighter);
+    margin-bottom: 8px;
   }
 
   .empty-state {

@@ -1,17 +1,38 @@
 :root {
-  --font-body: 'Lora', Georgia, serif;
-  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Newsreader', Georgia, serif;
+  --font-ui: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
 
-  --color-bg: #ffffff;
-  --color-text: #0d0d0d;
-  --color-text-light: #6b6b6b;
-  --color-text-lighter: #b3b3b1;
-  --color-border: #e8e8e8;
-  --color-hover: #f9f9f9;
-  --color-tag-bg: #f2f2f2;
+  --color-bg: #F7F4EC;
+  --color-surface: #EFEBE1;
+  --color-text: #211F1B;
+  --color-text-light: #706B61;
+  --color-text-lighter: var(--color-text-light); /* single secondary tone: a third, lighter tier fails AA on this bg */
+  --color-border: #D9D3C7;
+  --color-accent: #B58A45;
+  --color-accent-hover: #8D672F;
+  --color-accent-text: var(--color-accent-hover); /* AA-safe (4.6:1) for accent used as text/icon */
+  --color-hover: var(--color-surface);
+  --color-tag-bg: var(--color-surface);
 
-  --reading-width: 740px;
+  --reading-width: 680px;
+  --header-width: 900px;
   --content-width: 1192px;
+
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --color-bg: #11110F;
+  --color-surface: #191814;
+  --color-text: #EAE5D8;
+  --color-text-light: #A7A093;
+  --color-text-lighter: var(--color-text-light);
+  --color-border: #302D27;
+  --color-accent: #C5A15B;
+  --color-accent-hover: #D8B873;
+  --color-accent-text: var(--color-accent); /* already 7.8:1 in dark mode */
+
+  color-scheme: dark;
 }
 
 *, *::before, *::after {
@@ -31,6 +52,7 @@ body {
   background: var(--color-bg);
   color: var(--color-text);
   line-height: 1.6;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 a { color: inherit; text-decoration: none; }
@@ -39,3 +61,24 @@ img { max-width: 100%; height: auto; display: block; }
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 2px; }
+
+/* ── Motivo lunar reutilizable ── */
+.moon-divider {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  text-align: center;
+  margin: 0;
+  position: relative;
+  height: 0;
+}
+
+.moon-divider::after {
+  content: '◐';
+  position: relative;
+  top: -0.62em;
+  background: var(--color-bg);
+  color: var(--color-accent);
+  padding: 0 14px;
+  font-size: 0.9rem;
+  transition: background-color 0.25s ease;
+}
